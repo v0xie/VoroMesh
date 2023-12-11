@@ -48,6 +48,13 @@ def normalize(v: np.ndarray, retscale=False):
         return v, center, scale
     return v
 
+def restore_scale(v: np.ndarray, center: np.ndarray, scale, rescale_f=0.9):
+    """center and normalize vertices in [-1,1]^3"""
+    v *= 1.0 / rescale_f
+    v *= scale
+    v += center
+    return v
+
 
 def matched_normalize(v: np.ndarray, center: np.ndarray, scale: float):
     """center and normalize vertices in [-1,1]^3"""
@@ -150,14 +157,17 @@ def load_and_sample_shape(model_name: str, src_dir: str, sample_n=1e5, rescale_f
     v, f = igl.read_triangle_mesh(src_dir + model_name)
     if rescale_f == "NDC":
         v = 2 * NDCnormalize(v)
+        center = None
+        scale = None
     else:
-        v = rescale_f * normalize(v)
+        norm_v, center, scale = normalize(v, True)
+        v = rescale_f * norm_v
     if sample_n == 0:
-        return v, f
+        return v, f, samples, center, scale
     ref_mesh = trimesh.Trimesh(v, f)
     samples, _ = trimesh.sample.sample_surface_even(ref_mesh, int(sample_n))
     samples = np.array(samples)
-    return v, f, samples
+    return v, f, samples, center, scale
 
 
 def sample_mesh_with_normals(ref_mesh, n_samples):

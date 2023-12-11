@@ -63,13 +63,17 @@ if __name__ == '__main__':
     parser = define_options_parser()
     args = parser.parse_args()
     print("Sampling input shape...")
-    v, f, samples = mt.load_and_sample_shape(
+    v, f, samples, center, scale = mt.load_and_sample_shape(
         args.shape_path, '', args.samples_fac*args.grid_n**2)
+    print(f'Center: {center}')
+    print(f'Scale: {scale}')
 
     print("Optimizing VoroMesh...")
     V = create_voromesh(samples, v, f, args.grid_n, args.lr,
                         args.epochs, args.device, args.random_mask, args.lr_scheduler)
+    nv, nf = V.to_mesh()
+    nv = mt.restore_scale(nv, center, scale)
     print("Exporting VoroMesh...")
 
     # precise mesh extraction using CGAL
-    mt.export_obj(*V.to_mesh(), args.output_name)
+    mt.export_obj(nv, nf, args.output_name)
